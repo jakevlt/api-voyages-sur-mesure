@@ -143,11 +143,85 @@ Première migration du projet, dans [`migrations/Version20261118120000.php`](mig
 
 ## 4. Installation en développement
 
-*À compléter (Docker Compose : API + MySQL avec une copie de la base du site).*
+### Prérequis
+
+- **Docker Desktop** (Docker Compose v2), **ou** PHP 8.2+ avec la [CLI Symfony](https://symfony.com/download) et un MariaDB local ;
+- Git.
+
+### Ce que contient l'environnement Docker (`compose.yaml`)
+
+| Service | Rôle | Accès depuis le poste |
+|---|---|---|
+| `db` | MariaDB **10.4** (même version que le serveur de la cliente) avec la base `agence_voyage` : schéma d'origine du site + données de test | `127.0.0.1:3307` |
+| `api` | PHP 8.3 + Apache + Composer, sert l'API depuis `public/` | http://127.0.0.1:8000 |
+| `phpmyadmin` (optionnel) | Consulter la base | http://127.0.0.1:8081 (`docker compose --profile outils up -d`) |
+
+Au premier démarrage, MariaDB exécute les scripts de [`docker/db/init/`](docker/db/init/) :
+
+1. `00-comptes.sql` — comptes MySQL **dédiés** : `api_voyages` (lecture/écriture des données, sans droit de structure) et `api_migrations` (droits de structure, utilisé seulement pour les migrations) ;
+2. `01-schema-site-origine.sql` — schéma de la base du site, tel qu'exporté le 10/09/2026 ;
+3. `02-donnees-de-test.sql` — référentiels, comptes et simulations de test (aucune donnée réelle).
+
+Les **migrations de l'API** (dont la réparation de la base) s'appliquent ensuite avec Doctrine, comme elles le seront en production. Elles sont suivies dans la table `api_migration_versions`, distincte de celle du site.
+
+### Première installation du squelette Symfony (une seule fois)
+
+*Étape réalisée une seule fois au démarrage du projet ; ensuite, un `git clone` + `composer install` suffit.*
+
+Avec Docker :
+
+```bash
+docker compose up -d --build
+# Squelette Symfony 7.4 (LTS) — copie uniquement les fichiers absents du dépôt
+docker compose exec api sh -c "composer create-project symfony/skeleton:'7.4.*' /tmp/sk && cp -rn /tmp/sk/. /var/www/html/"
+```
+
+Sans Docker (PowerShell, CLI Symfony) :
+
+```powershell
+symfony composer create-project symfony/skeleton:"7.4.*" ..\api-skeleton
+robocopy ..\api-skeleton . /E /XC /XN /XO   # copie seulement les fichiers absents
+```
+
+Puis les dépendances (dans le conteneur : préfixer par `docker compose exec api`) :
+
+```bash
+composer require api-platform/symfony symfony/orm-pack doctrine/doctrine-migrations-bundle \
+    lexik/jwt-authentication-bundle nelmio/cors-bundle symfony/rate-limiter \
+    symfony/security-bundle symfony/validator symfony/serializer symfony/monolog-bundle
+composer require --dev symfony/maker-bundle symfony/test-pack
+```
+
+> Si Composer demande « *Do you want to include Docker configuration from recipes?* », répondre **n** (le `compose.yaml` du projet est déjà écrit).
+
+### Installation courante (après clonage)
+
+```bash
+git clone https://github.com/jakevlt/api-voyages-sur-mesure.git
+cd api-voyages-sur-mesure
+docker compose up -d --build
+docker compose exec api composer install
+# Migrations avec le compte qui a les droits de structure
+docker compose exec api sh -c 'DATABASE_URL="$DATABASE_MIGRATIONS_URL" php bin/console doctrine:migrations:migrate -n'
+# Clés JWT de développement (générées localement, jamais commitées)
+docker compose exec api php bin/console lexik:jwt:generate-keypair
+```
+
+L'API répond sur http://127.0.0.1:8000/api et sa documentation sur http://127.0.0.1:8000/api/docs.
+
+**Repartir d'une base propre :** `docker compose down -v` puis `docker compose up -d` (les scripts d'initialisation sont rejoués).
 
 ## 5. Comptes de test
 
-*À compléter.*
+Créés par `docker/db/init/02-donnees-de-test.sql` — **développement uniquement**. Les mots de passe respectent la règle de l'API-02 (12 caractères, majuscule, minuscule, chiffre).
+
+| Rôle | Login | Mot de passe |
+|---|---|---|
+| Gérante (`admin`) | `gerante@test.local` | `Gerante!Test2026` |
+| Membre (2 simulations) | `membre@test.local` | `Membre!Test2026` |
+| Autre membre (1 simulation, pour les tests de propriété → 404) | `membre2@test.local` | `Membre2!Test2026` |
+
+Comptes MySQL de développement : `api_voyages` / `api_dev_password` (API), `api_migrations` / `migrations_dev_password` (migrations), `root` / `root_dev_password`. **Valeurs factices, à remplacer en production** (voir le guide de déploiement).
 
 ## 6. Lancement des tests
 

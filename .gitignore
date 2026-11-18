@@ -1,0 +1,21 @@
+# Secrets et configuration locale (jamais dans le dépôt)
+.env.local
+.env.local.php
+.env.*.local
+config/jwt/*.pem
+
+# Symfony
+/var/
+/vendor/
+/public/bundles/
+
+# PHPUnit
+/phpunit.xml
+.phpunit.result.cache
+/.phpunit.cache/
+
+# Éditeurs / système
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store

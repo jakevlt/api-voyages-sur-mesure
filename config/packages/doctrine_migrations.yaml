@@ -1,0 +1,8 @@
+doctrine_migrations:
+    migrations_paths:
+        'DoctrineMigrations': '%kernel.project_dir%/migrations'
+    # Table de suivi propre à l'API : ne se mélange pas avec les migrations du site.
+    storage:
+        table_storage:
+            table_name: 'api_migration_versions'
+    enable_profiler: false
