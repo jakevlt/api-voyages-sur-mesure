@@ -68,36 +68,57 @@ Les bonus ★ (API-07, puis API-15, puis API-04) ne sont commencés qu'après l'
 
 ## 3. Écarts entre le MLD et la base réelle
 
-> **Analyse en cours (18/11).** Faite à partir du code source du site fourni (`SITE_VITRINE_VOYAGE_POC`), en attendant l'export SQL de la base réelle. Les points marqués ⚠️ sont à confirmer sur la base.
+Analyse faite le 18/11 à partir de l'**export SQL de la base** (phpMyAdmin, 10/09/2026, structure seule, copié dans [`docs/base/schema-site-origine.sql`](docs/base/schema-site-origine.sql)) et du **code source du site**.
 
 ### 3.1 Constat général
 
-- **Le site n'est plus en PHP procédural** comme l'indique le cahier des charges : il a été refondu en **Symfony 7 + Doctrine** (le README du site parle d'une « reprise complète du projet PHP procédural »). C'est un argument de plus pour Symfony : l'API pourra reprendre les mêmes conventions et le même hacheur de mots de passe.
-- **Pas de `database/install.sql` dans le dépôt du site.** La seule migration (`Version20260827000000`, « équivalent de l'ancien install.sql ») crée des tables `users` et `simulations` **qui ne correspondent pas aux entités du site** (`utilisateur`, `simulation`, …). ⚠️ Le vrai schéma est celui mappé par les entités Doctrine ; il faut un export SQL de la base (phpMyAdmin / `mysqldump`) pour le confirmer.
+- **Le site n'est plus en PHP procédural** comme l'indique le cahier des charges : il a été refondu en **Symfony 7 + Doctrine**. C'est un argument de plus pour Symfony : l'API reprend les mêmes conventions et le même hacheur de mots de passe.
+- **La base s'appelle `agence_voyage`** (MariaDB 10.4, jeu de caractères `utf8`), alors que la configuration du site pointe sur `site_vitrine`.
+- **Pas de `database/install.sql` dans le dépôt du site.** Sa seule migration crée des tables `users` et `simulations` qui **n'existent pas** dans la base réelle : elle ne doit pas être rejouée.
+- **L'export ne contient aucune donnée** (structure seule) : les référentiels (destinations, thèmes, types d'activité…) et des comptes de test devront être créés pour le développement.
 
-### 3.2 Comparaison table par table
+### 3.2 Comparaison avec le MLD du cahier des charges
 
-| MLD du cahier des charges | Base du site (entités Doctrine) | Écart |
+| MLD du cahier des charges | Base réelle | Écart |
 |---|---|---|
-| `Visiteur` (idTechnique, idVisiteur, login, mdp, contact) | `utilisateur` (IdUser, Nom, Login, Password, Role, Date_inscription, Contact, Telephone) | Table renommée ; `Login` contient l'**e-mail** ; ajout de Nom, Role, Date_inscription, Telephone |
-| `Simulation` (id, dateSoumission, budget, période, styleVoyage, flexibilité, participants, #idVisiteurTechnique) | `simulation` (IdSimulation, #IdUser **nullable**, #IdDestination, #IdTheme, #IdLogement, #IdTransport, #IdTypeSejour, Date_soumission, Date_Depart, Date_Retour, Budget, Ville_Depart, Ville_Retour, Besoin_Specifique, Attentes, Animaux, Statut, Date_Envoie) | Une seule destination et un seul thème par clé étrangère ; pas de flexibilité ni de style ; période remplacée par deux dates ; participants détaillés dans `inclu_voyageur` |
-| `Inclusion` (id, priorité, #idSimulation, #idDestination, #idTheme, #idTypeActivité) | `inclu_type` (IdSimulation, IdType) | **Pas de priorité**, pas de destinations multiples : seule la liaison simulation ↔ type d'activité existe |
+| `Visiteur` (idTechnique, idVisiteur, login, mdp, contact) | `utilisateur` (IdUser, Login, Password, Contact, Nom, Role, Date_inscription, Telephone) | Table renommée ; `Login` contient l'e-mail (varchar 50, unique) ; ajout de Nom, **Role**, Date_inscription, Telephone |
+| `Simulation` (id, dateSoumission, budget, période, styleVoyage, flexibilité, participants, #idVisiteurTechnique) | `simulation` (IdSimulation, Date_soumission, Budget, Date_Depart, Date_Retour, Type_Sejour, Ville_Depart, Ville_Retour, #IdUser, #IdDestination, #IdTheme, #IdLogement, #IdTransport, Besoin_Specifique, Attentes, **Statut**, Date_Envoie) | Période = deux dates ; pas de flexibilité ; style = `Type_Sejour` (texte) ; **une seule destination et un seul thème** (clés étrangères obligatoires) ; logement et transport en plus |
+| `Inclusion` (id, priorité, #idSimulation, #idDestination, #idTheme, #idTypeActivité) | `inclu_type` (#IdSimulation, #IdType) | **Pas de priorité, pas de destinations ni de thèmes multiples** : seule la liaison simulation ↔ type d'activité existe |
+| participants (attribut de Simulation) | `inclu_voyageur` (#IdSimulation, #IdVoyageur) + `voyageur` | Participants = catégories de voyageurs, **sans le nombre de personnes** |
 | `Destination` (id, pays, ville) | `destination` (IdDestination, Ville, Region) | **Pas de pays**, une région à la place |
 | `Theme` (id, theme) | `theme` (IdTheme, Theme) | Conforme |
 | `TypeActivite` (id, type) | `type_activite` (IdType, Type) | Conforme |
-| — | `logement`, `transport`, `type_sejour`, `voyageur`, `inclu_voyageur` | Tables absentes du MLD |
+| — | `logement`, `transport`, `voyageur` | Tables absentes du MLD |
 
-### 3.3 Les trois points demandés (§ 3.1 du cahier des charges)
+### 3.3 Écarts entre la base réelle et le code du site
 
-1. **Mots de passe** : hachés par Symfony (`password_hashers: auto`, bcrypt `$2y$`). Compatible avec `password_hash()` de PHP et avec le hacheur de l'API.
-2. **Statut d'une simulation** : **existe** (`simulation.Statut`, ENUM ⚠️ `en_attente`, `validé`, `refusé`). Les statuts attendus par l'API (brouillon, envoyée, en discussion, devis envoyé, clôturée) sont différents : correspondance à définir sans casser le site.
-3. **Rôle de la gérante** : **existe en base** (`utilisateur.Role` = `user` / `admin`), contrairement au cahier des charges qui parle d'un `.htpasswd`. **Consentement au rappel** : **absent** (la case RGPD est vérifiée par le formulaire mais pas enregistrée).
+Le code du site (entités Doctrine) attend des éléments **absents de l'export** du 10/09 :
 
-### 3.4 Conséquences pour l'API
+| Le code attend | La base contient |
+|---|---|
+| table `type_sejour` + colonne `simulation.IdTypeSejour` | colonne texte `simulation.Type_Sejour`, pas de table `type_sejour` |
+| colonne `simulation.Animaux` | absente |
+| `simulation.Besoin_Specifique` en texte | `tinyint(1)` (booléen) |
+| colonne `inclu_voyageur.nbre_voyageur` | absente |
 
-- **La simulation rapide n'est pas enregistrée en base** par le site (elle est gardée en session). Comme `simulation` impose une destination, un thème, un logement, un transport et un type de séjour, une simulation anonyme ne peut pas y être stockée sans modifier des colonnes existantes → piste : **nouvelle table `simulation_rapide`** (ajout uniquement), rattachée ensuite avec le code de reprise.
-- Ajouts à prévoir (migrations) : consentement au rappel + date, code de reprise (empreinte), compte actif, nombre d'échecs de connexion, statuts de l'API ⚠️ (extension de l'ENUM ou table de correspondance, à valider pour ne pas casser le site).
-- Le rôle `admin` existant sera réutilisé comme rôle **gérante** (`ROLE_ADMIN`), sans nouvelle colonne.
+⚠️ **À faire confirmer** : soit l'export est plus ancien que le code (la base de production a évolué depuis), soit le simulateur complet du site ne fonctionne pas sur cette base. Il faut l'export **actuel** de la base de production avant d'écrire les migrations de l'API.
+
+### 3.4 Les trois points demandés (§ 3.1 du cahier des charges)
+
+1. **Mots de passe** : `utilisateur.Password` varchar(255), hachés par Symfony (`password_hashers: auto`, bcrypt `$2y$`), compatibles avec `password_verify()` de PHP et avec le hacheur de l'API. (Pas de données dans l'export pour le vérifier sur un vrai compte.)
+2. **Statut d'une simulation** : **existe** — `simulation.Statut` ENUM(`en_attente`, `validé`, `refusé`), défaut `en_attente`. Les statuts attendus par l'API (brouillon, envoyée, en discussion, devis envoyé, clôturée) sont différents : correspondance à définir sans casser le site.
+3. **Rôle de la gérante** : **existe en base** — `utilisateur.Role` ENUM(`admin`, `user`), contrairement au cahier des charges qui parle d'un `.htpasswd`. **Consentement au rappel** : **absent** (la case RGPD est vérifiée par le formulaire mais rien n'est enregistré).
+
+### 3.5 Conséquences pour l'API
+
+- **La simulation rapide n'est pas enregistrée en base** par le site (elle reste en session). Une simulation anonyme ne peut pas aller dans `simulation` (destination, thème, logement et transport obligatoires) sans modifier des colonnes existantes → **nouvelle table `simulation_rapide`** (ajout uniquement), rattachée ensuite au membre avec le code de reprise.
+- **Ajouts prévus (migrations)** :
+  - `utilisateur` : `actif` (booléen, défaut 1), `nb_echecs_connexion` (entier, défaut 0), `date_dernier_echec` ;
+  - `simulation_rapide` (nouvelle table) : destination, budget, durée, coordonnées facultatives, `consentement_rappel` + `date_consentement`, `code_reprise_hash`, `IdUser` rattaché, date ;
+  - consentement au rappel également sur les membres (`utilisateur.consentement_rappel` + date) ;
+  - statuts de l'API : extension de l'ENUM `Statut` ou table de correspondance ⚠️ à valider pour ne pas casser le site ;
+  - journal des changements de statut (nouvelle table `historique_statut`).
+- Le rôle `admin` existant est réutilisé comme rôle **gérante** (`ROLE_ADMIN`), sans nouvelle colonne.
 
 ## 4. Installation en développement
 
