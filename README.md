@@ -68,7 +68,36 @@ Les bonus ★ (API-07, puis API-15, puis API-04) ne sont commencés qu'après l'
 
 ## 3. Écarts entre le MLD et la base réelle
 
-*À compléter à l'étape 1 après analyse de `database/install.sql` : noms exacts des tables et colonnes, types, clés étrangères, stockage des mots de passe, emplacement du statut / du consentement / du rôle.*
+> **Analyse en cours (18/11).** Faite à partir du code source du site fourni (`SITE_VITRINE_VOYAGE_POC`), en attendant l'export SQL de la base réelle. Les points marqués ⚠️ sont à confirmer sur la base.
+
+### 3.1 Constat général
+
+- **Le site n'est plus en PHP procédural** comme l'indique le cahier des charges : il a été refondu en **Symfony 7 + Doctrine** (le README du site parle d'une « reprise complète du projet PHP procédural »). C'est un argument de plus pour Symfony : l'API pourra reprendre les mêmes conventions et le même hacheur de mots de passe.
+- **Pas de `database/install.sql` dans le dépôt du site.** La seule migration (`Version20260827000000`, « équivalent de l'ancien install.sql ») crée des tables `users` et `simulations` **qui ne correspondent pas aux entités du site** (`utilisateur`, `simulation`, …). ⚠️ Le vrai schéma est celui mappé par les entités Doctrine ; il faut un export SQL de la base (phpMyAdmin / `mysqldump`) pour le confirmer.
+
+### 3.2 Comparaison table par table
+
+| MLD du cahier des charges | Base du site (entités Doctrine) | Écart |
+|---|---|---|
+| `Visiteur` (idTechnique, idVisiteur, login, mdp, contact) | `utilisateur` (IdUser, Nom, Login, Password, Role, Date_inscription, Contact, Telephone) | Table renommée ; `Login` contient l'**e-mail** ; ajout de Nom, Role, Date_inscription, Telephone |
+| `Simulation` (id, dateSoumission, budget, période, styleVoyage, flexibilité, participants, #idVisiteurTechnique) | `simulation` (IdSimulation, #IdUser **nullable**, #IdDestination, #IdTheme, #IdLogement, #IdTransport, #IdTypeSejour, Date_soumission, Date_Depart, Date_Retour, Budget, Ville_Depart, Ville_Retour, Besoin_Specifique, Attentes, Animaux, Statut, Date_Envoie) | Une seule destination et un seul thème par clé étrangère ; pas de flexibilité ni de style ; période remplacée par deux dates ; participants détaillés dans `inclu_voyageur` |
+| `Inclusion` (id, priorité, #idSimulation, #idDestination, #idTheme, #idTypeActivité) | `inclu_type` (IdSimulation, IdType) | **Pas de priorité**, pas de destinations multiples : seule la liaison simulation ↔ type d'activité existe |
+| `Destination` (id, pays, ville) | `destination` (IdDestination, Ville, Region) | **Pas de pays**, une région à la place |
+| `Theme` (id, theme) | `theme` (IdTheme, Theme) | Conforme |
+| `TypeActivite` (id, type) | `type_activite` (IdType, Type) | Conforme |
+| — | `logement`, `transport`, `type_sejour`, `voyageur`, `inclu_voyageur` | Tables absentes du MLD |
+
+### 3.3 Les trois points demandés (§ 3.1 du cahier des charges)
+
+1. **Mots de passe** : hachés par Symfony (`password_hashers: auto`, bcrypt `$2y$`). Compatible avec `password_hash()` de PHP et avec le hacheur de l'API.
+2. **Statut d'une simulation** : **existe** (`simulation.Statut`, ENUM ⚠️ `en_attente`, `validé`, `refusé`). Les statuts attendus par l'API (brouillon, envoyée, en discussion, devis envoyé, clôturée) sont différents : correspondance à définir sans casser le site.
+3. **Rôle de la gérante** : **existe en base** (`utilisateur.Role` = `user` / `admin`), contrairement au cahier des charges qui parle d'un `.htpasswd`. **Consentement au rappel** : **absent** (la case RGPD est vérifiée par le formulaire mais pas enregistrée).
+
+### 3.4 Conséquences pour l'API
+
+- **La simulation rapide n'est pas enregistrée en base** par le site (elle est gardée en session). Comme `simulation` impose une destination, un thème, un logement, un transport et un type de séjour, une simulation anonyme ne peut pas y être stockée sans modifier des colonnes existantes → piste : **nouvelle table `simulation_rapide`** (ajout uniquement), rattachée ensuite avec le code de reprise.
+- Ajouts à prévoir (migrations) : consentement au rappel + date, code de reprise (empreinte), compte actif, nombre d'échecs de connexion, statuts de l'API ⚠️ (extension de l'ENUM ou table de correspondance, à valider pour ne pas casser le site).
+- Le rôle `admin` existant sera réutilisé comme rôle **gérante** (`ROLE_ADMIN`), sans nouvelle colonne.
 
 ## 4. Installation en développement
 
