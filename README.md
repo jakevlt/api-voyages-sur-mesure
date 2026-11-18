@@ -113,12 +113,12 @@ Conséquence vérifiée sur une copie de la base : **le simulateur complet du si
 ### 3.5 Conséquences pour l'API
 
 - **La simulation rapide n'est pas enregistrée en base** par le site (elle reste en session). Une simulation anonyme ne peut pas aller dans `simulation` (destination, thème, logement et transport obligatoires) sans modifier des colonnes existantes → **nouvelle table `simulation_rapide`** (ajout uniquement), rattachée ensuite au membre avec le code de reprise.
-- **Ajouts prévus (migrations)** :
-  - `utilisateur` : `actif` (booléen, défaut 1), `nb_echecs_connexion` (entier, défaut 0), `date_dernier_echec` ;
-  - `simulation_rapide` (nouvelle table) : destination, budget, durée, coordonnées facultatives, `consentement_rappel` + `date_consentement`, `code_reprise_hash`, `IdUser` rattaché, date ;
-  - consentement au rappel également sur les membres (`utilisateur.consentement_rappel` + date) ;
-  - statuts de l'API : extension de l'ENUM `Statut` ou table de correspondance ⚠️ à valider pour ne pas casser le site ;
-  - journal des changements de statut (nouvelle table `historique_statut`).
+- **Ajouts prévus (migrations)** — détail et justification dans [`docs/conception/`](docs/conception/README.md) :
+  - `utilisateur` : `Actif` (défaut 1), `Nb_echecs_connexion` (défaut 0), `Date_dernier_echec`, `Consentement_rappel` (défaut 0), `Date_consentement` ;
+  - `simulation_rapide` (nouvelle table) : destination, budget, durée, coordonnées facultatives, consentement + date, `Code_reprise_hash`, membre rattaché, dates ;
+  - `simulation.Flexibilite_jours` ; tables `inclu_destination` (destinations par priorité) et `inclu_theme` (thèmes complémentaires) ;
+  - `historique_statut` (nouvelle table) : journal des changements de statut ;
+  - ENUM `Statut` **étendu** (valeurs existantes conservées) : `brouillon`, `en_discussion`, `devis_envoye`, `cloturee` ; `en_attente` signifie « envoyée ».
 - Le rôle `admin` existant est réutilisé comme rôle **gérante** (`ROLE_ADMIN`), sans nouvelle colonne.
 
 ### 3.6 Réparation de la base (migration `Version20261118120000`)
