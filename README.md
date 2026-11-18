@@ -6,6 +6,7 @@ API REST (JSON) qui expose de façon sécurisée les données du site de voyages
 - **Organisation :** travail seul (« chacun de son côté », § 2.1 du cahier des charges)
 - **Technologie :** Symfony + API Platform (PHP 8.2+)
 - **Suivi des tâches :** GitHub Project du dépôt (une tâche par user story + tâches transverses)
+- **Cahiers des charges :** [API](docs/cahier-des-charges/cahier-des-charges-API.pdf) · [site vitrine, version 2](docs/cahier-des-charges/cahier-des-charges-site-V2.pdf)
 - **Conception :** MCD, MLD, UML, architecture et déploiement dans [`docs/conception/`](docs/conception/)
 
 ---
