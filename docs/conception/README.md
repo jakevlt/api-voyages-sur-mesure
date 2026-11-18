@@ -16,7 +16,7 @@ Le MCD reprend la base réelle du site (et non le MLD théorique du cahier des c
 
 ![MLD](02-mld.png)
 
-Le MLD montre les tables, les types et les clés étrangères après les migrations. Toutes les évolutions sont des ajouts (colonnes avec valeur par défaut ou nouvelles tables) pour que le site continue de fonctionner ; seules exceptions : `Besoin_Specifique` passée en texte pour réparer le site, et l'ENUM `Statut` étendu avec les nouveaux statuts (les valeurs existantes sont conservées).
+Le MLD montre les tables, les types et les clés étrangères après les migrations. La partie « site » correspond au MPD officiel du cahier des charges du site (V2, 18/11/2026), obtenu grâce à la migration de réparation. Les évolutions de l'API sont toutes des ajouts (colonnes avec valeur par défaut ou nouvelles tables) pour que le site continue de fonctionner.
 
 ## 3. Cas d'utilisation
 
@@ -62,7 +62,7 @@ L'API s'installe sur le serveur existant sans nouveau logiciel : le serveur web 
 |---|---|---|
 | Simulation rapide | Nouvelle table `simulation_rapide` | La table `simulation` impose destination, thème, logement et transport : une simulation anonyme n'y entre pas sans modifier des colonnes existantes |
 | Code de reprise | Aléatoire (`random_bytes`), stocké haché | Comme un mot de passe : une fuite de la base ne permet pas de rattacher la simulation d'un autre |
-| Statuts | ENUM étendu : `brouillon` → `en_attente` (= envoyée) → `en_discussion` → `devis_envoye` → `cloturee` ; `validé` / `refusé` conservés pour le site | Le site continue d'afficher et de modifier ses statuts ; l'API ajoute les siens sans rien renommer |
+| Statuts | `Statut` en VARCHAR(20) (MPD du site V2) : `brouillon` → `en_attente` (= envoyée) → `en_discussion` → `devis_envoye` → `cloturee` ; `validé` / `refusé` conservés pour le site (RG-10) | Le site continue d'afficher et de modifier ses statuts ; l'API ajoute les siens sans rien renommer |
 | Rôle gérante | Réutilise `utilisateur.Role = 'admin'` | Le rôle existe déjà en base (contrairement à ce que dit le cahier des charges) |
 | Destinations multiples | Table `inclu_destination` (priorité) ; `simulation.IdDestination` = destination n°1 | Le site continue de lire sa destination principale |
 | Besoins spécifiques | Texte, visible seulement par le membre propriétaire et la gérante | Peut contenir des données de santé (RGPD) |

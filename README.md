@@ -69,6 +69,8 @@ Les bonus ★ (API-07, puis API-15, puis API-04) ne sont commencés qu'après l'
 
 ## 3. Écarts entre le MLD et la base réelle
 
+> **Mise à jour 18/11 après-midi :** le cahier des charges du site **version 2** (18/11/2026) décrit officiellement le schéma attendu par le code du site (MLD/MPD). La réparation de la section 3.6 produit exactement ce schéma.
+
 Analyse faite le 18/11 à partir de l'**export SQL de la base** (phpMyAdmin, 10/09/2026, structure seule, copié dans [`docs/base/schema-site-origine.sql`](docs/base/schema-site-origine.sql)) et du **code source du site**.
 
 ### 3.1 Constat général
@@ -102,7 +104,7 @@ Le code du site (entités Doctrine) attend des éléments **absents de l'export*
 | `simulation.Besoin_Specifique` en texte | `tinyint(1)` (booléen) |
 | colonne `inclu_voyageur.nbre_voyageur` | absente |
 
-Conséquence vérifiée sur une copie de la base : **le simulateur complet du site plante** (colonne `IdTypeSejour` inconnue, et texte refusé dans `Besoin_Specifique`). → Réparé par la migration décrite en 3.6.
+Le cahier des charges du site V2 confirme que c'est **la base qui est en retard sur le code** (son MPD contient bien ces éléments). Conséquence vérifiée sur une copie de la base : **le simulateur complet du site plante** (colonne `IdTypeSejour` inconnue, et texte refusé dans `Besoin_Specifique`). → Réparé par la migration décrite en 3.6.
 
 ### 3.4 Les trois points demandés (§ 3.1 du cahier des charges)
 
@@ -118,22 +120,23 @@ Conséquence vérifiée sur une copie de la base : **le simulateur complet du si
   - `simulation_rapide` (nouvelle table) : destination, budget, durée, coordonnées facultatives, consentement + date, `Code_reprise_hash`, membre rattaché, dates ;
   - `simulation.Flexibilite_jours` ; tables `inclu_destination` (destinations par priorité) et `inclu_theme` (thèmes complémentaires) ;
   - `historique_statut` (nouvelle table) : journal des changements de statut ;
-  - ENUM `Statut` **étendu** (valeurs existantes conservées) : `brouillon`, `en_discussion`, `devis_envoye`, `cloturee` ; `en_attente` signifie « envoyée ».
+  - nouveaux statuts gérés par l'API dans `Statut` (VARCHAR(20) depuis la réparation) : `brouillon`, `en_discussion`, `devis_envoye`, `cloturee` ; `en_attente` signifie « envoyée » ; `validé` / `refusé` restent ceux du site (RG-10).
 - Le rôle `admin` existant est réutilisé comme rôle **gérante** (`ROLE_ADMIN`), sans nouvelle colonne.
 
 ### 3.6 Réparation de la base (migration `Version20261118120000`)
 
-Première migration du projet, dans [`migrations/Version20261118120000.php`](migrations/Version20261118120000.php). Elle remet la base en accord avec le code du site **sans modifier le code du site** :
+Première migration du projet, dans [`migrations/Version20261118120000.php`](migrations/Version20261118120000.php). Elle remet la base en accord avec le code du site et avec le **MPD du cahier des charges du site V2**, **sans modifier le code du site** :
 
 | Correction | Type | Détail |
 |---|---|---|
 | Table `type_sejour` | ajout | Remplie avec les valeurs déjà présentes dans `simulation.Type_Sejour` + une liste de départ (Détente, Aventure, Culturel, Nature, Gastronomie) modifiable par la gérante |
-| `simulation.IdTypeSejour` | ajout | Clé étrangère nullable vers `type_sejour` ; les anciennes simulations sont reliées à partir de leur texte. L'ancienne colonne `Type_Sejour` est conservée |
+| `simulation.IdTypeSejour` | ajout | Clé étrangère **obligatoire** vers `type_sejour` (MPD V2) ; les anciennes simulations sont reliées à partir de leur texte, celles sans type reçoivent « Non précisé ». L'ancienne colonne `Type_Sejour` est conservée (non utilisée, absente du MPD V2) |
 | `simulation.Animaux` | ajout | VARCHAR(100), vide par défaut |
 | `inclu_voyageur.nbre_voyageur` | ajout | INT, 1 par défaut |
-| `simulation.Besoin_Specifique` | **modification** | TINYINT(1) → TEXT. Anciennes valeurs : 0 → vide, 1 → « Oui (détail non renseigné) » |
+| `simulation.Besoin_Specifique` | **modification** | TINYINT(1) → TEXT (MPD V2). Anciennes valeurs : 0 → vide, 1 → « Oui (détail non renseigné) » |
+| `simulation.Statut` | **modification** | ENUM → VARCHAR(20) (MPD V2), défaut `en_attente` ; valeurs existantes conservées |
 
-**Exception à la règle « ajouts uniquement » (§ 6.3).** `Besoin_Specifique` est la seule colonne modifiée. Aucun ajout ne permettait de réparer le site sans toucher à son code (il écrit un texte dans cette colonne). Le changement de type ne perd aucune donnée et ne renomme ni ne supprime rien. Le retour arrière (`down`) existe mais ramène le texte à 0/1 : **sauvegarde de la base obligatoire avant d'appliquer la migration**.
+**Exception à la règle « ajouts uniquement » (§ 6.3).** `Besoin_Specifique` et `Statut` sont les seules colonnes modifiées, pour correspondre au MPD officiel du site (V2) : le site écrit un texte dans `Besoin_Specifique`, et aucun ajout ne permettait de réparer sans toucher à son code. Le changement de type ne perd aucune donnée et ne renomme ni ne supprime rien. Le retour arrière (`down`) existe mais ramène le texte à 0/1 : **sauvegarde de la base obligatoire avant d'appliquer la migration**.
 
 **Données sensibles.** Les besoins spécifiques peuvent contenir des données de santé (allergies, handicap…) : l'API ne les renverra qu'au membre propriétaire de la simulation et à la gérante.
 

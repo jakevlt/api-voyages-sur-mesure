@@ -38,7 +38,7 @@ graph MCD {
   SIMULATION -- inclure_type [label="0,n"]; inclure_type -- TYPE_ACTIVITE [label="0,n"];
   SIMULATION -- loger [label="1,1"]; loger -- LOGEMENT [label="0,n"];
   SIMULATION -- voyager [label="1,1"]; voyager -- TRANSPORT [label="0,n"];
-  SIMULATION -- etre_de_type [label="0,1"]; etre_de_type -- TYPE_SEJOUR [label="0,n"];
+  SIMULATION -- etre_de_type [label="1,1"]; etre_de_type -- TYPE_SEJOUR [label="0,n"];
   SIMULATION -- composer [label="0,n"]; composer -- VOYAGEUR [label="0,n"];
   SIMULATION -- prioriser [label="0,n"]; prioriser -- DESTINATION [label="0,n"];
   SIMULATION -- completer_theme [label="0,n"]; completer_theme -- THEME [label="0,n"];

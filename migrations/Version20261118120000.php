@@ -17,15 +17,17 @@ use Doctrine\Migrations\AbstractMigration;
  *   3. colonne `inclu_voyageur.nbre_voyageur` ;
  *   4. `simulation.Besoin_Specifique` est un booléen alors que le site y écrit un texte.
  *
- * Les points 1 à 3 sont des AJOUTS (règle du § 6.3 du cahier des charges).
- * Le point 4 est la seule modification de type : TINYINT(1) -> TEXT, sans perte de données
- * (voir README, section 3.6). Le code du site n'est pas modifié.
+ * Le résultat correspond au MPD du cahier des charges du site, version 2 (18/11/2026) :
+ * IdTypeSejour obligatoire, Besoin_Specifique en TEXT, Statut en VARCHAR(20).
+ * Les points 1 à 3 sont des AJOUTS (règle du § 6.3 du cahier des charges de l'API) ; les
+ * changements de type (Besoin_Specifique, Statut) ne perdent aucune donnée (README § 3.6).
+ * Le code du site n'est pas modifié.
  */
 final class Version20261118120000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Réparation : type_sejour, Animaux, nbre_voyageur, Besoin_Specifique en texte';
+        return 'Réparation (MPD site V2) : type_sejour, Animaux, nbre_voyageur, Besoin_Specifique TEXT, Statut VARCHAR(20)';
     }
 
     public function up(Schema $schema): void
@@ -70,6 +72,25 @@ final class Version20261118120000 extends AbstractMigration
             WHERE s.IdTypeSejour IS NULL
         SQL);
 
+        // Cahier des charges du site V2 (18/11/2026) : IdTypeSejour est OBLIGATOIRE.
+        // Les anciennes simulations sans type reçoivent la valeur « Non précisé ».
+        $this->addSql("INSERT IGNORE INTO type_sejour (Type_Sejour) VALUES ('Non précisé')");
+        $this->addSql(<<<'SQL'
+            UPDATE simulation
+            SET IdTypeSejour = (SELECT IdTypeSejour FROM type_sejour WHERE Type_Sejour = 'Non précisé')
+            WHERE IdTypeSejour IS NULL
+        SQL);
+        $this->addSql('ALTER TABLE simulation DROP FOREIGN KEY fk_simulation_type_sejour');
+        $this->addSql('ALTER TABLE simulation MODIFY IdTypeSejour INT(11) NOT NULL');
+        $this->addSql(<<<'SQL'
+            ALTER TABLE simulation ADD CONSTRAINT fk_simulation_type_sejour
+            FOREIGN KEY (IdTypeSejour) REFERENCES type_sejour (IdTypeSejour) ON UPDATE CASCADE
+        SQL);
+
+        // MPD V2 : Statut en VARCHAR(20) (au lieu d'un ENUM). Les valeurs existantes
+        // (en_attente, validé, refusé) sont conservées telles quelles.
+        $this->addSql("ALTER TABLE simulation MODIFY Statut VARCHAR(20) NOT NULL DEFAULT 'en_attente'");
+
         // 2. Animaux voyageant avec le groupe (texte libre, 100 caractères max côté site).
         $this->addSql('ALTER TABLE simulation ADD Animaux VARCHAR(100) DEFAULT NULL');
 
@@ -95,6 +116,9 @@ final class Version20261118120000 extends AbstractMigration
                 CASE WHEN Besoin_Specifique IS NULL OR Besoin_Specifique = '' THEN NULL ELSE '1' END
         SQL);
         $this->addSql('ALTER TABLE simulation MODIFY Besoin_Specifique TINYINT(1) DEFAULT NULL');
+        $this->addSql(<<<'SQL'
+            ALTER TABLE simulation MODIFY Statut ENUM('en_attente','validé','refusé') NOT NULL DEFAULT 'en_attente'
+        SQL);
         $this->addSql('ALTER TABLE inclu_voyageur DROP COLUMN nbre_voyageur');
         $this->addSql('ALTER TABLE simulation DROP COLUMN Animaux');
         $this->addSql('ALTER TABLE simulation DROP FOREIGN KEY fk_simulation_type_sejour');

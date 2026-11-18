@@ -10,7 +10,7 @@ skinparam class {
 }
 hide circle
 hide methods
-title MLD — base agence_voyage après réparation et évolutions de l'API\n<color:#b8860b>jaune</color> = réparation (18/11) · <color:#1a7f37>vert</color> = ajouts de l'API · FK = clé étrangère, souligné = clé primaire
+title MLD — base agence_voyage après réparation (= MPD du site V2) et évolutions de l'API\n<color:#b8860b>jaune</color> = réparation (18/11) · <color:#1a7f37>vert</color> = ajouts de l'API · FK = clé étrangère, souligné = clé primaire
 
 entity "utilisateur" as U {
   <u>IdUser</u> INT
@@ -37,17 +37,18 @@ entity "simulation" as S {
   FK IdTheme INT
   FK IdLogement INT
   FK IdTransport INT
-  <color:#b8860b>FK IdTypeSejour INT NULL</color>
+  <color:#b8860b>FK IdTypeSejour INT</color>
   Date_soumission DATE
   Budget DECIMAL(10,2) NULL
   Date_Depart / Date_Retour DATE NULL
-  Type_Sejour VARCHAR(100) NULL (ancienne colonne)
+  Type_Sejour VARCHAR(100) NULL (ancienne, inutilisée)
   Ville_Depart / Ville_Retour VARCHAR(100) NULL
   <color:#b8860b>Besoin_Specifique TEXT NULL</color>
   Attentes TEXT NULL
   <color:#b8860b>Animaux VARCHAR(100) NULL</color>
-  Statut ENUM(<color:#1a7f37>'brouillon'</color>, 'en_attente', <color:#1a7f37>'en_discussion',</color>
-    <color:#1a7f37>'devis_envoye', 'cloturee'</color>, 'validé', 'refusé')
+  <color:#b8860b>Statut VARCHAR(20) = 'en_attente'</color>
+    site : en_attente, validé, refusé
+    <color:#1a7f37>API : brouillon, en_discussion, devis_envoye, cloturee</color>
   Date_Envoie DATE NULL
   <color:#1a7f37>Flexibilite_jours INT NULL</color>
 }
@@ -136,7 +137,7 @@ S }o--|| D
 S }o--|| T
 S }o--|| L
 S }o--|| TR
-S }o--o| TS
+S }o--|| TS
 S ||--o{ ITY
 ITY }o--|| TA
 S ||--o{ IV
