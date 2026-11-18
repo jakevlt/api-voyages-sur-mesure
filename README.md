@@ -101,7 +101,7 @@ Le code du site (entités Doctrine) attend des éléments **absents de l'export*
 | `simulation.Besoin_Specifique` en texte | `tinyint(1)` (booléen) |
 | colonne `inclu_voyageur.nbre_voyageur` | absente |
 
-⚠️ **À faire confirmer** : soit l'export est plus ancien que le code (la base de production a évolué depuis), soit le simulateur complet du site ne fonctionne pas sur cette base. Il faut l'export **actuel** de la base de production avant d'écrire les migrations de l'API.
+Conséquence vérifiée sur une copie de la base : **le simulateur complet du site plante** (colonne `IdTypeSejour` inconnue, et texte refusé dans `Besoin_Specifique`). → Réparé par la migration décrite en 3.6.
 
 ### 3.4 Les trois points demandés (§ 3.1 du cahier des charges)
 
@@ -119,6 +119,26 @@ Le code du site (entités Doctrine) attend des éléments **absents de l'export*
   - statuts de l'API : extension de l'ENUM `Statut` ou table de correspondance ⚠️ à valider pour ne pas casser le site ;
   - journal des changements de statut (nouvelle table `historique_statut`).
 - Le rôle `admin` existant est réutilisé comme rôle **gérante** (`ROLE_ADMIN`), sans nouvelle colonne.
+
+### 3.6 Réparation de la base (migration `Version20261118120000`)
+
+Première migration du projet, dans [`migrations/Version20261118120000.php`](migrations/Version20261118120000.php). Elle remet la base en accord avec le code du site **sans modifier le code du site** :
+
+| Correction | Type | Détail |
+|---|---|---|
+| Table `type_sejour` | ajout | Remplie avec les valeurs déjà présentes dans `simulation.Type_Sejour` + une liste de départ (Détente, Aventure, Culturel, Nature, Gastronomie) modifiable par la gérante |
+| `simulation.IdTypeSejour` | ajout | Clé étrangère nullable vers `type_sejour` ; les anciennes simulations sont reliées à partir de leur texte. L'ancienne colonne `Type_Sejour` est conservée |
+| `simulation.Animaux` | ajout | VARCHAR(100), vide par défaut |
+| `inclu_voyageur.nbre_voyageur` | ajout | INT, 1 par défaut |
+| `simulation.Besoin_Specifique` | **modification** | TINYINT(1) → TEXT. Anciennes valeurs : 0 → vide, 1 → « Oui (détail non renseigné) » |
+
+**Exception à la règle « ajouts uniquement » (§ 6.3).** `Besoin_Specifique` est la seule colonne modifiée. Aucun ajout ne permettait de réparer le site sans toucher à son code (il écrit un texte dans cette colonne). Le changement de type ne perd aucune donnée et ne renomme ni ne supprime rien. Le retour arrière (`down`) existe mais ramène le texte à 0/1 : **sauvegarde de la base obligatoire avant d'appliquer la migration**.
+
+**Données sensibles.** Les besoins spécifiques peuvent contenir des données de santé (allergies, handicap…) : l'API ne les renverra qu'au membre propriétaire de la simulation et à la gérante.
+
+**Tests réalisés (18/11)** sur une copie de la base (MariaDB, export du 10/09 + données de test) : bug reproduit avant migration ; après migration, une simulation complète s'enregistre comme le fait le site (type de séjour, animaux, besoins spécifiques, composition du groupe) ; retour arrière puis nouvelle application sans erreur.
+
+**À noter pour la suite.** La migration `Version20260827000000` du site crée des tables `users` / `simulations` qui n'existent pas dans la base réelle : elle ne doit pas être exécutée. Les migrations de l'API utiliseront leur propre table de suivi (`api_migration_versions`) pour ne pas se mélanger avec celles du site.
 
 ## 4. Installation en développement
 
