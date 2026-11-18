@@ -1,0 +1,152 @@
+@startuml
+skinparam defaultFontName DejaVu Sans
+skinparam dpi 130
+skinparam linetype ortho
+skinparam shadowing false
+skinparam class {
+  BackgroundColor #ffffff
+  BorderColor #333333
+  HeaderBackgroundColor #dbe8f7
+}
+hide circle
+hide methods
+title MLD — base agence_voyage après réparation et évolutions de l'API\n<color:#b8860b>jaune</color> = réparation (18/11) · <color:#1a7f37>vert</color> = ajouts de l'API · FK = clé étrangère, souligné = clé primaire
+
+entity "utilisateur" as U {
+  <u>IdUser</u> INT
+  --
+  Login VARCHAR(50) UNIQUE
+  Password VARCHAR(255)
+  Nom VARCHAR(100)
+  Contact VARCHAR(150) NULL
+  Telephone VARCHAR(20) NULL
+  Role ENUM('admin','user')
+  Date_inscription DATE
+  <color:#1a7f37>Actif TINYINT(1) = 1</color>
+  <color:#1a7f37>Nb_echecs_connexion INT = 0</color>
+  <color:#1a7f37>Date_dernier_echec DATETIME NULL</color>
+  <color:#1a7f37>Consentement_rappel TINYINT(1) = 0</color>
+  <color:#1a7f37>Date_consentement DATETIME NULL</color>
+}
+
+entity "simulation" as S {
+  <u>IdSimulation</u> INT
+  --
+  FK IdUser INT NULL
+  FK IdDestination INT
+  FK IdTheme INT
+  FK IdLogement INT
+  FK IdTransport INT
+  <color:#b8860b>FK IdTypeSejour INT NULL</color>
+  Date_soumission DATE
+  Budget DECIMAL(10,2) NULL
+  Date_Depart / Date_Retour DATE NULL
+  Type_Sejour VARCHAR(100) NULL (ancienne colonne)
+  Ville_Depart / Ville_Retour VARCHAR(100) NULL
+  <color:#b8860b>Besoin_Specifique TEXT NULL</color>
+  Attentes TEXT NULL
+  <color:#b8860b>Animaux VARCHAR(100) NULL</color>
+  Statut ENUM(<color:#1a7f37>'brouillon'</color>, 'en_attente', <color:#1a7f37>'en_discussion',</color>
+    <color:#1a7f37>'devis_envoye', 'cloturee'</color>, 'validé', 'refusé')
+  Date_Envoie DATE NULL
+  <color:#1a7f37>Flexibilite_jours INT NULL</color>
+}
+
+entity "<color:#1a7f37>simulation_rapide</color>" as SR {
+  <u>IdSimulationRapide</u> INT
+  --
+  FK IdDestination INT
+  FK IdUser INT NULL
+  Budget DECIMAL(10,2)
+  Duree INT
+  Nom / Email / Telephone NULL
+  Consentement_rappel TINYINT(1) = 0
+  Date_consentement DATETIME NULL
+  Code_reprise_hash VARCHAR(255)
+  Date_creation DATETIME
+  Date_rattachement DATETIME NULL
+}
+
+entity "<color:#1a7f37>historique_statut</color>" as H {
+  <u>IdHistorique</u> INT
+  --
+  FK IdSimulation INT
+  FK IdUser INT
+  Ancien_statut VARCHAR(20)
+  Nouveau_statut VARCHAR(20)
+  Date_changement DATETIME
+}
+
+entity "<color:#1a7f37>inclu_destination</color>" as ID {
+  <u>FK IdSimulation, FK IdDestination</u>
+  --
+  Priorite INT
+}
+entity "<color:#1a7f37>inclu_theme</color>" as IT {
+  <u>FK IdSimulation, FK IdTheme</u>
+}
+entity "inclu_type" as ITY {
+  <u>FK IdSimulation, FK IdType</u>
+}
+entity "inclu_voyageur" as IV {
+  <u>FK IdSimulation, FK IdVoyageur</u>
+  --
+  <color:#b8860b>nbre_voyageur INT = 1</color>
+}
+
+entity "destination" as D {
+  <u>IdDestination</u> INT
+  --
+  Ville VARCHAR(100)
+  Region VARCHAR(100) NULL
+}
+entity "theme" as T {
+  <u>IdTheme</u> INT
+  --
+  Theme VARCHAR(100)
+}
+entity "type_activite" as TA {
+  <u>IdType</u> INT
+  --
+  Type VARCHAR(100)
+}
+entity "logement" as L {
+  <u>IdLogement</u> INT
+  --
+  Type_Logement VARCHAR(100)
+}
+entity "transport" as TR {
+  <u>IdTransport</u> INT
+  --
+  Type_Transport VARCHAR(100)
+}
+entity "<color:#b8860b>type_sejour</color>" as TS {
+  <u>IdTypeSejour</u> INT
+  --
+  Type_Sejour VARCHAR(100) UNIQUE
+}
+entity "voyageur" as V {
+  <u>IdVoyageur</u> INT
+  --
+  Type_Voyageur VARCHAR(100)
+}
+
+U ||--o{ S
+S }o--|| D
+S }o--|| T
+S }o--|| L
+S }o--|| TR
+S }o--o| TS
+S ||--o{ ITY
+ITY }o--|| TA
+S ||--o{ IV
+IV }o--|| V
+S ||--o{ ID
+ID }o--|| D
+S ||--o{ IT
+IT }o--|| T
+SR }o--|| D
+U |o--o{ SR
+S ||--o{ H
+U ||--o{ H
+@enduml

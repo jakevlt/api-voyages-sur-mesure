@@ -1,0 +1,38 @@
+@startuml
+skinparam defaultFontName DejaVu Sans
+skinparam dpi 130
+skinparam shadowing false
+title Architecture — le site, l'API, la base et la future application mobile
+
+actor "Visiteurs\net membres" as U
+actor "Gérante" as G
+node "Navigateur web" as NAV
+node "Application mobile\n(PWA React puis Capacitor)\n— projet ultérieur —" as MOB #eeeeee
+node "Agence partenaire\n— à terme —" as AG #eeeeee
+
+cloud "Internet (HTTPS uniquement)" as NET
+
+package "Serveur de la cliente" {
+  component "Site vitrine\nSymfony 7 + Twig\n(inchangé)" as SITE
+  component "API REST\nSymfony + API Platform\nJSON, JWT, OpenAPI /api/docs" as API #d8f0dc
+  database "MariaDB\nagence_voyage\n(accès local uniquement)" as DB
+}
+
+U --> NAV
+G --> NAV
+U --> MOB
+G --> MOB
+NAV --> NET
+MOB --> NET
+AG ..> NET
+NET --> SITE : https://domaine.fr
+NET --> API : https://api.domaine.fr\n(CORS : liste blanche)
+SITE --> DB : compte MySQL du site
+API --> DB : compte MySQL dédié\n(droits minimaux)
+note bottom of DB
+  Même base pour le site et l'API.
+  L'API n'ajoute que des colonnes / tables
+  (migrations versionnées) : le site
+  fonctionne exactement comme avant.
+end note
+@enduml

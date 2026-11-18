@@ -1,0 +1,49 @@
+graph MCD {
+  graph [fontname="DejaVu Sans", rankdir=LR, splines=true, nodesep=0.5, ranksep=0.9, label="MCD — API Voyages sur mesure\nbleu = existant · jaune = ajouté par la réparation du 18/11 · vert = ajouts prévus pour l'API", labelloc=t, fontsize=16, pad=0.3];
+  node [fontname="DejaVu Sans", fontsize=10];
+  edge [fontname="DejaVu Sans", fontsize=10];
+
+  node [shape=plain];
+  UTILISATEUR [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="#dbe8f7"><b>UTILISATEUR</b></td></tr><tr><td align="left"><u>IdUser</u><br align="left"/>Login (e-mail)<br align="left"/>Password (empreinte)<br align="left"/>Nom<br align="left"/>Contact<br align="left"/>Telephone<br align="left"/>Role (user / admin)<br align="left"/>Date_inscription<br align="left"/><font color="#1a7f37">Actif</font><br align="left"/><font color="#1a7f37">Nb_echecs_connexion</font><br align="left"/><font color="#1a7f37">Date_dernier_echec</font><br align="left"/><font color="#1a7f37">Consentement_rappel</font><br align="left"/><font color="#1a7f37">Date_consentement</font><br align="left"/></td></tr></table>>];
+  SIMULATION [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="#dbe8f7"><b>SIMULATION</b></td></tr><tr><td align="left"><u>IdSimulation</u><br align="left"/>Date_soumission<br align="left"/>Budget<br align="left"/>Date_Depart / Date_Retour<br align="left"/>Ville_Depart / Ville_Retour<br align="left"/>Besoin_Specifique<br align="left"/>Attentes<br align="left"/>Animaux<br align="left"/>Statut<br align="left"/>Date_Envoie<br align="left"/><font color="#1a7f37">Flexibilite_jours</font><br align="left"/></td></tr></table>>];
+  SIMULATION_RAPIDE [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="#d8f0dc"><b><font color="#1a7f37">SIMULATION_RAPIDE</font></b></td></tr><tr><td align="left"><u>IdSimulationRapide</u><br align="left"/>Budget<br align="left"/>Duree<br align="left"/>Nom, Email, Telephone (facultatifs)<br align="left"/>Consentement_rappel<br align="left"/>Date_consentement<br align="left"/>Code_reprise_hash<br align="left"/>Date_creation<br align="left"/>Date_rattachement<br align="left"/></td></tr></table>>];
+  HISTORIQUE_STATUT [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="#d8f0dc"><b><font color="#1a7f37">HISTORIQUE_STATUT</font></b></td></tr><tr><td align="left"><u>IdHistorique</u><br align="left"/>Ancien_statut<br align="left"/>Nouveau_statut<br align="left"/>Date_changement<br align="left"/></td></tr></table>>];
+  DESTINATION [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="#dbe8f7"><b>DESTINATION</b></td></tr><tr><td align="left"><u>IdDestination</u><br align="left"/>Ville<br align="left"/>Region<br align="left"/></td></tr></table>>];
+  THEME [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="#dbe8f7"><b>THEME</b></td></tr><tr><td align="left"><u>IdTheme</u><br align="left"/>Theme<br align="left"/></td></tr></table>>];
+  TYPE_ACTIVITE [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="#dbe8f7"><b>TYPE_ACTIVITE</b></td></tr><tr><td align="left"><u>IdType</u><br align="left"/>Type<br align="left"/></td></tr></table>>];
+  LOGEMENT [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="#dbe8f7"><b>LOGEMENT</b></td></tr><tr><td align="left"><u>IdLogement</u><br align="left"/>Type_Logement<br align="left"/></td></tr></table>>];
+  TRANSPORT [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="#dbe8f7"><b>TRANSPORT</b></td></tr><tr><td align="left"><u>IdTransport</u><br align="left"/>Type_Transport<br align="left"/></td></tr></table>>];
+  TYPE_SEJOUR [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="#fff3cd"><b>TYPE_SEJOUR</b></td></tr><tr><td align="left"><u>IdTypeSejour</u><br align="left"/>Type_Sejour<br align="left"/></td></tr></table>>];
+  VOYAGEUR [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="#dbe8f7"><b>VOYAGEUR</b></td></tr><tr><td align="left"><u>IdVoyageur</u><br align="left"/>Type_Voyageur<br align="left"/></td></tr></table>>];
+
+  node [shape=ellipse, style=filled, fillcolor="#f2f2f2"];
+  soumettre [label="soumettre"];
+  porter_sur [label="porter sur"];
+  avoir_theme [label="avoir pour thème"];
+  inclure_type [label="inclure"];
+  loger [label="loger en"];
+  voyager [label="voyager en"];
+  etre_de_type [label="être de type"];
+  composer [label="composer\n(nbre_voyageur)"];
+  prioriser [label="viser\n(priorité)", fillcolor="#d8f0dc"];
+  completer_theme [label="compléter par", fillcolor="#d8f0dc"];
+  rattacher [label="rattacher", fillcolor="#d8f0dc"];
+  viser_rapide [label="concerner", fillcolor="#d8f0dc"];
+  tracer [label="tracer", fillcolor="#d8f0dc"];
+  effectuer [label="effectuer", fillcolor="#d8f0dc"];
+
+  UTILISATEUR -- soumettre [label="0,n"]; soumettre -- SIMULATION [label="0,1"];
+  SIMULATION -- porter_sur [label="1,1"]; porter_sur -- DESTINATION [label="0,n"];
+  SIMULATION -- avoir_theme [label="1,1"]; avoir_theme -- THEME [label="0,n"];
+  SIMULATION -- inclure_type [label="0,n"]; inclure_type -- TYPE_ACTIVITE [label="0,n"];
+  SIMULATION -- loger [label="1,1"]; loger -- LOGEMENT [label="0,n"];
+  SIMULATION -- voyager [label="1,1"]; voyager -- TRANSPORT [label="0,n"];
+  SIMULATION -- etre_de_type [label="0,1"]; etre_de_type -- TYPE_SEJOUR [label="0,n"];
+  SIMULATION -- composer [label="0,n"]; composer -- VOYAGEUR [label="0,n"];
+  SIMULATION -- prioriser [label="0,n"]; prioriser -- DESTINATION [label="0,n"];
+  SIMULATION -- completer_theme [label="0,n"]; completer_theme -- THEME [label="0,n"];
+  UTILISATEUR -- rattacher [label="0,n"]; rattacher -- SIMULATION_RAPIDE [label="0,1"];
+  SIMULATION_RAPIDE -- viser_rapide [label="1,1"]; viser_rapide -- DESTINATION [label="0,n"];
+  SIMULATION -- tracer [label="0,n"]; tracer -- HISTORIQUE_STATUT [label="1,1"];
+  UTILISATEUR -- effectuer [label="0,n"]; effectuer -- HISTORIQUE_STATUT [label="1,1"];
+}

@@ -1,0 +1,34 @@
+@startuml
+skinparam defaultFontName DejaVu Sans
+skinparam dpi 130
+skinparam shadowing false
+title Déploiement — installation de l'API sur le serveur de la cliente
+
+node "Poste client\n(navigateur / appli mobile)" as CL
+
+node "Serveur de la cliente (Linux)" as SRV {
+  node "Apache ou Nginx (existant)\nHTTPS Let's Encrypt" as WEB {
+    artifact "vhost domaine.fr\n→ site/public/" as VSITE
+    artifact "vhost api.domaine.fr\n→ api/public/" as VAPI #d8f0dc
+  }
+  node "PHP 8.2+ (PHP-FPM)\nextensions Symfony" as PHP {
+    component "Site Symfony" as SITE
+    component "API Symfony\nAPP_ENV=prod\ncomposer install --no-dev" as API #d8f0dc
+  }
+  database "MariaDB\n127.0.0.1:3306\n(fermé à Internet)" as DB
+  folder "Hors dossier web" as SECRETS {
+    artifact ".env.local de l'API\n(DATABASE_URL, clés JWT prod)" as ENV
+    artifact "Journaux de l'API\n(rotation logrotate)" as LOGS
+    artifact "Sauvegarde avant migration\n(mysqldump)" as BKP
+  }
+}
+
+CL --> WEB : HTTPS 443
+VSITE --> SITE
+VAPI --> API
+SITE --> DB : compte MySQL du site
+API --> DB : compte MySQL api_voyages\n(SELECT/INSERT/UPDATE sur les tables utiles)
+API ..> ENV : lit les secrets
+API ..> LOGS : écrit
+DB ..> BKP : avant\ndoctrine:migrations:migrate
+@enduml
