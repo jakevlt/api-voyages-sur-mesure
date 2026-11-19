@@ -1,0 +1,104 @@
+@startuml
+skinparam defaultFontName DejaVu Sans
+skinparam dpi 150
+skinparam shadowing false
+skinparam classBackgroundColor #ffffff
+skinparam classBorderColor #333333
+skinparam classFontSize 11
+skinparam classAttributeFontSize 10
+hide circle
+hide empty methods
+left to right direction
+title Diagramme de classes
+class User {
+  - id : int
+  - prenom : string
+  - nom : string
+  - email : string
+  - password : string
+  - role : string
+  - adminPrincipal : bool
+  - dateInscription : date
+  - contact : string
+  - telephone : string
+  - dateSuppression : datetime
+}
+class JournalAdmin {
+  - id : int
+  - adminNom : string
+  - action : string
+  - cible : string
+  - cibleType : string
+  - cibleId : int
+  - dateAction : datetime
+}
+class Simulation {
+  - id : int
+  - dateSoumission : date
+  - dateDepart : date
+  - dateRetour : date
+  - budget : decimal
+  - villeDepart : string
+  - villeArrivee : string
+  - besoinsSpecifiques : string
+  - attentes : string
+  - animaux : string
+  - statut : string
+  - dateEnvoi : date
+}
+class IncluVoyageur {
+  - nbreVoyageur : int
+}
+class TypeVoyageur {
+  - id : int
+  - libelle : string
+}
+class Destination {
+  - id : int
+  - ville : string
+  - region : string
+}
+class Theme {
+  - id : int
+  - libelle : string
+}
+class Logement {
+  - id : int
+  - libelle : string
+}
+class Transport {
+  - id : int
+  - libelle : string
+}
+class TypeSejour {
+  - id : int
+  - libelle : string
+}
+class TypeActivite {
+  - id : int
+  - libelle : string
+}
+class SimulationRapide <<ajout API>> {
+  - id : int
+  - budget : decimal
+  - duree : int
+  - email : string
+  - telephone : string
+  - consentementRappel : bool
+  - dateConsentement : datetime
+  - codeRepriseHash : string
+  - dateCreation : datetime
+}
+User "0..1" -- "0..*" Simulation : effectue >
+User "0..1" -- "0..*" JournalAdmin : réalise >
+Simulation "0..*" -- "1" Destination
+Simulation "0..*" -- "1" Theme
+Simulation "0..*" -- "1" Logement
+Simulation "0..*" -- "1" Transport
+Simulation "0..*" -- "1" TypeSejour
+Simulation "0..*" -- "0..*" TypeActivite
+Simulation "1" -- "1..*" IncluVoyageur
+IncluVoyageur "0..*" -- "1" TypeVoyageur
+SimulationRapide "0..*" -- "1" Destination
+User "0..1" -- "0..*" SimulationRapide : récupère >
+@enduml

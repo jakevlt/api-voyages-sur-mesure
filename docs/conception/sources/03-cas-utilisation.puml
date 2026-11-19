@@ -3,51 +3,25 @@ skinparam defaultFontName DejaVu Sans
 skinparam dpi 130
 skinparam shadowing false
 left to right direction
-title Cas d'utilisation — API Voyages sur mesure\n(★ = story complémentaire, bonus en travail seul)
-
-actor "Visiteur anonyme" as V
-actor "Membre" as M
+title Cas d'utilisation de l'API
+actor Visiteur
+actor Membre
 actor "Gérante" as G
-M -|> V
-G -|> M
-
-rectangle "API REST /api" {
-  usecase "Consulter les référentiels\n(destinations, thèmes, activités) — API-05" as UC05
-  usecase "Envoyer une simulation rapide — API-06" as UC06
-  usecase "Créer un compte — API-02" as UC02
-  usecase "Se connecter (jeton JWT) — API-01" as UC01
-  usecase "Consulter / modifier mon profil — API-03" as UC03
-  usecase "Supprimer mon compte ★ — API-04" as UC04
-  usecase "Rattacher une simulation rapide\navec le code de reprise ★ — API-07" as UC07
-  usecase "Créer une simulation détaillée — API-08" as UC08
-  usecase "Lister / consulter mes simulations — API-09" as UC09
-  usecase "Modifier ou envoyer une simulation\nnon envoyée — API-10" as UC10
-  usecase "Lister toutes les simulations\n(filtres statut, date) — API-11" as UC11
-  usecase "Changer le statut d'une simulation — API-12" as UC12
-  usecase "Consulter les contacts\nayant consenti au rappel — API-13" as UC13
-  usecase "Consulter / désactiver\nun compte membre — API-14" as UC14
-  usecase "Consulter les indicateurs ★ — API-15" as UC15
+rectangle "API Voyages sur mesure" {
+  usecase "Voir les destinations\net les thèmes" as U1
+  usecase "Faire une simulation\nrapide" as U2
+  usecase "Créer un compte" as U3
+  usecase "Se connecter" as U4
+  usecase "Voir / modifier\nses simulations" as U5
+  usecase "Voir toutes\nles simulations" as U6
+  usecase "Changer le statut\nd'une simulation" as U7
 }
-
-V --> UC05
-V --> UC06
-V --> UC02
-M --> UC01
-M --> UC03
-M --> UC04
-M --> UC07
-M --> UC08
-M --> UC09
-M --> UC10
-G --> UC11
-G --> UC12
-G --> UC13
-G --> UC14
-G --> UC15
-UC03 ..> UC01 : <<include>>
-UC07 ..> UC01 : <<include>>
-UC08 ..> UC01 : <<include>>
-UC09 ..> UC01 : <<include>>
-UC10 ..> UC01 : <<include>>
-UC12 ..> UC01 : <<include>>
+Visiteur --> U1
+Visiteur --> U2
+Visiteur --> U3
+Membre --> U4
+Membre --> U5
+G --> U4
+G --> U6
+G --> U7
 @enduml

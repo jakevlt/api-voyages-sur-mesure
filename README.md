@@ -1,13 +1,13 @@
 # API Voyages sur mesure
 
-API REST (JSON) qui expose de façon sécurisée les données du site de voyages sur mesure, en vue de la future application mobile. Projet BTS SIO SLAM — livraison le **30 novembre 2026**.
+API REST (JSON) qui expose de façon sécurisée les données du site de voyages sur mesure, pour la future **application web** de la cliente (une application mobile viendra plus tard et utilisera la même API). Projet BTS SIO SLAM — livraison le **30 novembre 2026**.
 
 - **Auteur :** Jake Volante (BTS SIO 2 — 47 Ermitage)
 - **Organisation :** travail seul (« chacun de son côté », § 2.1 du cahier des charges)
 - **Technologie :** Symfony + API Platform (PHP 8.2+)
 - **Suivi des tâches :** GitHub Project du dépôt (une tâche par user story + tâches transverses)
-- **Cahiers des charges :** [API](docs/cahier-des-charges/cahier-des-charges-API.pdf) · [site vitrine, version 2](docs/cahier-des-charges/cahier-des-charges-site-V2.pdf)
-- **Conception :** MCD, MLD, UML, architecture et déploiement dans [`docs/conception/`](docs/conception/)
+- **Cahiers des charges :** [API](docs/cahier-des-charges/cahier-des-charges-API.pdf) · [site vitrine, V03 du 19/11/2026](docs/cahier-des-charges/cahier-des-charges-site-V03.pdf)
+- **Conception :** MCD, MLD, diagramme de classes, cas d'utilisation et architecture dans [`docs/conception/`](docs/conception/)
 
 ---
 
@@ -19,11 +19,11 @@ J'ai choisi **Symfony (version LTS) avec API Platform** plutôt que FastAPI, pou
 
 **2. Le déploiement sur le serveur de la cliente.** Le serveur fait déjà tourner PHP et un serveur web (Apache ou Nginx) pour le site. Une API Symfony s'y ajoute **sans installer de nouveau logiciel** : `composer install --no-dev`, `APP_ENV=prod`, et le serveur web existant sert le dossier `public/` sur un sous-domaine `api.` ou sous `/api`. Avec FastAPI, il faudrait installer et maintenir Python 3.12, lancer un service supplémentaire (Uvicorn/Gunicorn via systemd) qui doit redémarrer seul et être surveillé, et configurer un proxy inverse : c'est un coût d'exploitation en plus pour une petite structure. Point à vérifier auprès de la cliente : la version de PHP du serveur doit convenir au site **et** à Symfony (PHP 8.2 minimum).
 
-**3. L'équipe qui reprendra l'API.** L'équipe qui a développé le site travaille en **PHP**. Avec Symfony, elle reste dans son langage pour maintenir l'API et y ajouter des routes pour l'application mobile. Une API en Python l'obligerait à apprendre un nouveau langage et un nouvel écosystème.
+**3. L'équipe qui reprendra l'API.** L'équipe qui a développé le site travaille en **PHP**. Avec Symfony, elle reste dans son langage pour maintenir l'API et y ajouter des routes pour l'application web, puis mobile. Une API en Python l'obligerait à apprendre un nouveau langage et un nouvel écosystème.
 
 **4. Les exigences de sécurité et de documentation.** API Platform fournit nativement ce que demande le cahier des charges : documentation OpenAPI générée automatiquement sur `/api/docs` (et export JSON), **groupes de sérialisation** pour contrôler précisément ce que chaque ressource renvoie et accepte (jamais de mot de passe ni d'empreinte), validation des entrées, pagination de toutes les listes. Symfony Security et `lexik/jwt-authentication-bundle` couvrent l'authentification par jeton JWT ; le limiteur de débit (RateLimiter) de Symfony couvre la limitation des tentatives de connexion et des simulations anonymes ; NelmioCorsBundle permet une liste blanche d'origines CORS. Enfin, j'ai déjà pratiqué Symfony en cours (projet Symfony et TP de sécurité), ce qui réduit le risque pour un projet réalisé seul en moins de deux semaines.
 
-**Limite assumée :** Symfony est plus lourd à mettre en place que FastAPI au démarrage (configuration, entités). Je compense en utilisant les générateurs de Symfony (MakerBundle) et en commençant par l'environnement Docker Compose (API + copie de la base).
+**Limite assumée :** Symfony est plus lourd à mettre en place que FastAPI au démarrage (configuration, entités). Je compense en utilisant les générateurs de Symfony (MakerBundle) et en travaillant en local avec XAMPP, comme pour le site.
 
 ---
 
@@ -36,7 +36,6 @@ Je réalise le projet **seul**, dans ce dépôt personnel. Conformément au § 2
 - **Périmètre obligatoire (socle)** : les user stories sans ★ — API-01, 02, 03, 05, 06, 08, 09, 10, 11, 12, 13, 14.
 - **Bonus** : les stories ★ — API-04, 07, 15 — réalisées seulement si le socle est terminé et testé.
 - Le **contrat de l'API** (§ 6.1) et les **évolutions de la base** (§ 6.3) sont respectés à l'identique, pour que ma version soit interchangeable avec une autre.
-- Une **branche par fonctionnalité** (`feature/API-01-connexion`, `feature/analyse-base`…), fusionnée dans `main` quand la tâche est terminée et testée.
 - Chaque tâche du GitHub Project a un responsable (moi) et une date prévue (jalon).
 
 ### Contraintes de calendrier
@@ -48,7 +47,7 @@ Je suis en alternance : **au centre de formation du 16 au 20/11**, puis **en ent
 | Étape | Date prévue | Contenu | Résultat vérifiable |
 |---|---|---|---|
 | 0. Cadrage | mer. 18/11 | Dépôt, GitHub Project, README (choix + organisation) | Dépôt et Project en ligne |
-| 1. Analyse et conception | ven. 20/11 | Analyse de `database/install.sql` et écarts avec le MLD, MCD/MLD mis à jour, environnement Docker Compose, diagrammes UML, **fiche E6** | Écarts notés dans ce README, fiche E6 envoyée |
+| 1. Analyse et conception | ven. 20/11 | Analyse de `database/install.sql` et écarts avec le MLD, MCD/MLD mis à jour, installation locale (XAMPP), diagrammes UML, **fiche E6** | Écarts notés dans ce README, fiche E6 envoyée |
 | 2. Socle : authentification et référentiels | dim. 22/11 | Migrations (statut, consentement, code de reprise, rôle, compte actif, échecs de connexion), API-05, API-01, API-02, API-03 | Connexion JWT fonctionnelle avec un compte du site |
 | 3. Simulations du membre | mer. 25/11 | API-06, API-08, API-09, API-10 | Simulation rapide + simulations détaillées testées |
 | 4. Espace gérante | ven. 27/11 | API-11, API-12, API-13, API-14 | Routes gérante protégées (403 pour un membre) |
@@ -71,6 +70,8 @@ Les bonus ★ (API-07, puis API-15, puis API-04) ne sont commencés qu'après l'
 ## 3. Écarts entre le MLD et la base réelle
 
 > **Mise à jour 18/11 après-midi :** le cahier des charges du site **version 2** (18/11/2026) décrit officiellement le schéma attendu par le code du site (MLD/MPD). La réparation de la section 3.6 produit exactement ce schéma.
+>
+> **Mise à jour 19/11 :** le cahier des charges du site **V03** (19/11/2026) est maintenant la référence. La base de l'équipe du site (export du 19/11) contient déjà la réparation, ainsi que `Prenom`, `Admin_principal`, `Date_suppression` et la table `journal_admin`. Les schémas de [`docs/conception/`](docs/conception/README.md) suivent cette version. La migration de réparation (3.6) ne sert donc que pour une ancienne base (export du 10/09) : **elle ne doit pas être lancée sur la base du 19/11**.
 
 Analyse faite le 18/11 à partir de l'**export SQL de la base** (phpMyAdmin, 10/09/2026, structure seule, copié dans [`docs/base/schema-site-origine.sql`](docs/base/schema-site-origine.sql)) et du **code source du site**.
 
@@ -116,17 +117,14 @@ Le cahier des charges du site V2 confirme que c'est **la base qui est en retard 
 ### 3.5 Conséquences pour l'API
 
 - **La simulation rapide n'est pas enregistrée en base** par le site (elle reste en session). Une simulation anonyme ne peut pas aller dans `simulation` (destination, thème, logement et transport obligatoires) sans modifier des colonnes existantes → **nouvelle table `simulation_rapide`** (ajout uniquement), rattachée ensuite au membre avec le code de reprise.
-- **Ajouts prévus (migrations)** — détail et justification dans [`docs/conception/`](docs/conception/README.md) :
-  - `utilisateur` : `Actif` (défaut 1), `Nb_echecs_connexion` (défaut 0), `Date_dernier_echec`, `Consentement_rappel` (défaut 0), `Date_consentement` ;
-  - `simulation_rapide` (nouvelle table) : destination, budget, durée, coordonnées facultatives, consentement + date, `Code_reprise_hash`, membre rattaché, dates ;
-  - `simulation.Flexibilite_jours` ; tables `inclu_destination` (destinations par priorité) et `inclu_theme` (thèmes complémentaires) ;
-  - `historique_statut` (nouvelle table) : journal des changements de statut ;
-  - nouveaux statuts gérés par l'API dans `Statut` (VARCHAR(20) depuis la réparation) : `brouillon`, `en_discussion`, `devis_envoye`, `cloturee` ; `en_attente` signifie « envoyée » ; `validé` / `refusé` restent ceux du site (RG-10).
+- **Ajouts prévus (migrations)** — uniquement des ajouts, pour que le site continue de fonctionner :
+  - `simulation_rapide` (nouvelle table, voir le MCD et le MLD dans [`docs/conception/`](docs/conception/README.md)) : `Budget`, `Duree`, `Email`, `Telephone`, `Consentement_rappel`, `Date_consentement`, `Code_reprise_hash`, `Date_creation`, `#IdDestination`, `#IdUser` (rempli quand le membre récupère sa simulation) ;
+  - `utilisateur` : `Actif` (défaut 1) et `Nb_echecs_connexion` (défaut 0), demandés au minimum par le § 6.3 du cahier des charges.
 - Le rôle `admin` existant est réutilisé comme rôle **gérante** (`ROLE_ADMIN`), sans nouvelle colonne.
 
 ### 3.6 Réparation de la base (migration `Version20261118120000`)
 
-Première migration du projet, dans [`migrations/Version20261118120000.php`](migrations/Version20261118120000.php). Elle remet la base en accord avec le code du site et avec le **MPD du cahier des charges du site V2**, **sans modifier le code du site** :
+Première migration du projet, dans [`migrations/Version20261118120000.php`](migrations/Version20261118120000.php). Elle remet la base en accord avec le code du site et avec le **MPD du cahier des charges du site V2** (même schéma dans la V03), **sans modifier le code du site** :
 
 | Correction | Type | Détail |
 |---|---|---|
@@ -145,87 +143,62 @@ Première migration du projet, dans [`migrations/Version20261118120000.php`](mig
 
 **À noter pour la suite.** La migration `Version20260827000000` du site crée des tables `users` / `simulations` qui n'existent pas dans la base réelle : elle ne doit pas être exécutée. Les migrations de l'API utiliseront leur propre table de suivi (`api_migration_versions`) pour ne pas se mélanger avec celles du site.
 
-## 4. Installation en développement
+## 4. Installation en développement (XAMPP)
 
 ### Prérequis
 
-- **Docker Desktop** (Docker Compose v2), **ou** PHP 8.2+ avec la [CLI Symfony](https://symfony.com/download) et un MariaDB local ;
-- Git.
+- **XAMPP** avec PHP 8.2 et MySQL (MariaDB) démarrés ;
+- **Composer** et **Git** ;
+- la base **`site_vitrine`** de l'équipe du site importée dans phpMyAdmin (export du 19/11/2026).
 
-### Ce que contient l'environnement Docker (`compose.yaml`)
+### Étapes
 
-| Service | Rôle | Accès depuis le poste |
-|---|---|---|
-| `db` | MariaDB **10.4** (même version que le serveur de la cliente) avec la base `agence_voyage` : schéma d'origine du site + données de test | `127.0.0.1:3307` |
-| `api` | PHP 8.3 + Apache + Composer, sert l'API depuis `public/` | http://127.0.0.1:8000 |
-| `phpmyadmin` (optionnel) | Consulter la base | http://127.0.0.1:8081 (`docker compose --profile outils up -d`) |
-
-Au premier démarrage, MariaDB exécute les scripts de [`docker/db/init/`](docker/db/init/) :
-
-1. `00-comptes.sql` — comptes MySQL **dédiés** : `api_voyages` (lecture/écriture des données, sans droit de structure) et `api_migrations` (droits de structure, utilisé seulement pour les migrations) ;
-2. `01-schema-site-origine.sql` — schéma de la base du site, tel qu'exporté le 10/09/2026 ;
-3. `02-donnees-de-test.sql` — référentiels, comptes et simulations de test (aucune donnée réelle).
-
-Les **migrations de l'API** (dont la réparation de la base) s'appliquent ensuite avec Doctrine, comme elles le seront en production. Elles sont suivies dans la table `api_migration_versions`, distincte de celle du site.
-
-### Première installation du squelette Symfony (une seule fois)
-
-*Étape réalisée une seule fois au démarrage du projet ; ensuite, un `git clone` + `composer install` suffit.*
-
-Avec Docker :
-
-```bash
-docker compose up -d --build
-# Squelette Symfony 7.4 (LTS) — copie uniquement les fichiers absents du dépôt
-docker compose exec api sh -c "composer create-project symfony/skeleton:'7.4.*' /tmp/sk && cp -rn /tmp/sk/. /var/www/html/"
-```
-
-Sans Docker (PowerShell, CLI Symfony) :
+1. Créer les comptes MySQL dédiés à l'API : exécuter [`docs/base/comptes-mysql.sql`](docs/base/comptes-mysql.sql) dans phpMyAdmin (onglet SQL).
+2. Cloner le dépôt et installer les dépendances :
 
 ```powershell
-symfony composer create-project symfony/skeleton:"7.4.*" ..\api-skeleton
-robocopy ..\api-skeleton . /E /XC /XN /XO   # copie seulement les fichiers absents
+git clone https://github.com/jakevlt/api-voyages-sur-mesure.git
+cd api-voyages-sur-mesure
+composer install
 ```
 
-Puis les dépendances (dans le conteneur : préfixer par `docker compose exec api`) :
+3. Créer un fichier `.env.local` (jamais commité) avec la connexion à la base :
 
-```bash
-composer require api-platform/symfony symfony/orm-pack doctrine/doctrine-migrations-bundle \
-    lexik/jwt-authentication-bundle nelmio/cors-bundle symfony/rate-limiter \
-    symfony/security-bundle symfony/validator symfony/serializer symfony/monolog-bundle
+```
+DATABASE_URL="mysql://api_voyages:api_dev_password@127.0.0.1:3306/site_vitrine?serverVersion=10.4.32-MariaDB&charset=utf8mb4"
+```
+
+4. Appliquer les migrations de l'API (ajouts en base), puis générer les clés JWT de développement :
+
+```powershell
+php bin/console doctrine:migrations:migrate
+php bin/console lexik:jwt:generate-keypair
+```
+
+5. Lancer l'API :
+
+```powershell
+php -S 127.0.0.1:8001 -t public
+```
+
+L'API répond sur http://127.0.0.1:8001/api et sa documentation sur http://127.0.0.1:8001/api/docs (le site vitrine reste sur le port 8000).
+
+> **Sauvegarde obligatoire** de la base (export phpMyAdmin) avant chaque migration.
+
+### Première création du squelette Symfony (une seule fois)
+
+```powershell
+composer create-project symfony/skeleton:"7.4.*" ..\api-skeleton
+robocopy ..\api-skeleton . /E /XC /XN /XO
+composer require api-platform/symfony symfony/orm-pack doctrine/doctrine-migrations-bundle lexik/jwt-authentication-bundle nelmio/cors-bundle symfony/rate-limiter symfony/security-bundle symfony/validator symfony/serializer symfony/monolog-bundle
 composer require --dev symfony/maker-bundle symfony/test-pack
 ```
 
-> Si Composer demande « *Do you want to include Docker configuration from recipes?* », répondre **n** (le `compose.yaml` du projet est déjà écrit).
-
-### Installation courante (après clonage)
-
-```bash
-git clone https://github.com/jakevlt/api-voyages-sur-mesure.git
-cd api-voyages-sur-mesure
-docker compose up -d --build
-docker compose exec api composer install
-# Migrations avec le compte qui a les droits de structure
-docker compose exec api sh -c 'DATABASE_URL="$DATABASE_MIGRATIONS_URL" php bin/console doctrine:migrations:migrate -n'
-# Clés JWT de développement (générées localement, jamais commitées)
-docker compose exec api php bin/console lexik:jwt:generate-keypair
-```
-
-L'API répond sur http://127.0.0.1:8000/api et sa documentation sur http://127.0.0.1:8000/api/docs.
-
-**Repartir d'une base propre :** `docker compose down -v` puis `docker compose up -d` (les scripts d'initialisation sont rejoués).
+> Si Composer demande « *Do you want to include Docker configuration from recipes?* », répondre **n**.
 
 ## 5. Comptes de test
 
-Créés par `docker/db/init/02-donnees-de-test.sql` — **développement uniquement**. Les mots de passe respectent la règle de l'API-02 (12 caractères, majuscule, minuscule, chiffre).
-
-| Rôle | Login | Mot de passe |
-|---|---|---|
-| Gérante (`admin`) | `gerante@test.local` | `Gerante!Test2026` |
-| Membre (2 simulations) | `membre@test.local` | `Membre!Test2026` |
-| Autre membre (1 simulation, pour les tests de propriété → 404) | `membre2@test.local` | `Membre2!Test2026` |
-
-Comptes MySQL de développement : `api_voyages` / `api_dev_password` (API), `api_migrations` / `migrations_dev_password` (migrations), `root` / `root_dev_password`. **Valeurs factices, à remplacer en production** (voir le guide de déploiement).
+Les comptes de test sont ceux de la base de l'équipe du site (export du 19/11). Les mots de passe ne sont jamais écrits dans ce dépôt.
 
 ## 6. Lancement des tests
 

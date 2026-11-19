@@ -1,0 +1,22 @@
+@startuml
+skinparam defaultFontName DejaVu Sans
+skinparam dpi 150
+skinparam shadowing false
+title Architecture (3 machines virtuelles)
+node "VM 1 — Windows client" as CLI {
+  component "Navigateur web\n(site vitrine + future application web)" as NAV
+}
+node "VM 2 — Ubuntu (serveur web)" as WEB {
+  component "Apache + PHP" as AP
+  component "Site vitrine\n(Symfony)" as SITE
+  component "API REST\n(Symfony + API Platform)" as API
+}
+node "VM 3 — Windows Server (base de données)" as BDD {
+  database "MySQL\nsite_vitrine" as DB
+}
+NAV --> AP : HTTP / HTTPS
+AP --> SITE
+AP --> API
+SITE --> DB : SQL (Doctrine)
+API --> DB : SQL (Doctrine)
+@enduml

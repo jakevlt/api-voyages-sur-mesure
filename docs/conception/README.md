@@ -1,8 +1,8 @@
 # Schémas de conception — API Voyages sur mesure
 
-Schémas utilisés dans la fiche E6. Les sources (PlantUML / Graphviz) sont dans [`sources/`](sources/) : pour régénérer une image, `plantuml -tpng sources/XX.puml -o ..` ou `dot -Tpng sources/01-mcd.dot -o 01-mcd.png`.
+Ce sont les schémas de la fiche E6. Ils reprennent la base du site dans sa version du 19/11/2026 (cahier des charges du site **V03**) et la table que j'ajoute pour l'API (`simulation_rapide`).
 
-Code couleur commun : **bleu** = existant dans la base du site · **jaune** = ajouté par la réparation du 18/11 · **vert** = ajouts prévus pour l'API.
+Les sources sont dans [`sources/`](sources/). Pour régénérer une image : `dot -Tpng sources/01-mcd.dot -o 01-mcd.png` ou `plantuml -tpng sources/02-classes.puml`.
 
 ---
 
@@ -10,59 +10,42 @@ Code couleur commun : **bleu** = existant dans la base du site · **jaune** = aj
 
 ![MCD](01-mcd.png)
 
-Le MCD reprend la base réelle du site (et non le MLD théorique du cahier des charges), complétée par les ajouts de l'API. Un membre soumet 0 à n simulations, une simulation peut être anonyme (0,1) ; l'API ajoute la simulation rapide avec son code de reprise, les destinations par ordre de priorité, les thèmes complémentaires et l'historique des changements de statut.
+Un utilisateur peut faire plusieurs simulations. Une simulation a une destination, un thème, un logement, un transport et un type de séjour. Elle peut inclure plusieurs types d'activité et plusieurs catégories de voyageurs (avec leur nombre). Le journal_admin garde l'historique des actions des administrateurs.
+
+**Ajout pour l'API : SIMULATION_RAPIDE.** Un visiteur fait une simulation rapide sans compte (destination, budget, durée, coordonnées facultatives). L'API lui renvoie un code secret, stocké seulement sous forme d'empreinte (`Code_reprise_hash`). Une fois inscrit, il récupère la simulation sur son compte avec ce code (`IdUser` est alors rempli).
 
 ## 2. MLD
 
-![MLD](02-mld.png)
+En **gras** : clé primaire. `#` : clé étrangère.
 
-Le MLD montre les tables, les types et les clés étrangères après les migrations. La partie « site » correspond au MPD officiel du cahier des charges du site (V2, 18/11/2026), obtenu grâce à la migration de réparation. Les évolutions de l'API sont toutes des ajouts (colonnes avec valeur par défaut ou nouvelles tables) pour que le site continue de fonctionner.
+- utilisateur (**IdUser**, Nom, Prenom, Login, Password, Contact, Telephone, Role, Admin_principal, Date_inscription, Date_suppression)
+- simulation (**IdSimulation**, Date_soumission, Budget, Date_Depart, Date_Retour, Ville_Depart, Ville_Retour, Besoin_Specifique, Attentes, Animaux, Statut, Date_Envoie, #IdUser, #IdDestination, #IdTheme, #IdLogement, #IdTransport, #IdTypeSejour)
+- destination (**IdDestination**, Ville, Region)
+- theme (**IdTheme**, Theme)
+- logement (**IdLogement**, Type_Logement)
+- transport (**IdTransport**, Type_Transport)
+- type_sejour (**IdTypeSejour**, Type_Sejour)
+- type_activite (**IdType**, Type)
+- voyageur (**IdVoyageur**, Type_Voyageur)
+- inclu_type (**#IdSimulation, #IdType**)
+- inclu_voyageur (**#IdSimulation, #IdVoyageur**, nbre_voyageur)
+- journal_admin (**IdJournal**, Admin_nom, Action, Cible, Cible_type, Cible_id, Date_action, #IdAdmin)
+- simulation_rapide (**IdSimulationRapide**, Budget, Duree, Email, Telephone, Consentement_rappel, Date_consentement, Code_reprise_hash, Date_creation, #IdDestination, #IdUser) — *ajout prévu pour l'API*
 
-## 3. Cas d'utilisation
+## 3. Diagramme de classes
+
+![Diagramme de classes](02-classes.png)
+
+Chaque table a sa classe avec les mêmes attributs, sauf `inclu_type` qui devient un simple lien entre Simulation et TypeActivite. IncluVoyageur porte le nombre de voyageurs de chaque catégorie pour une simulation. SimulationRapide est la classe ajoutée pour l'API.
+
+## 4. Cas d'utilisation
 
 ![Cas d'utilisation](03-cas-utilisation.png)
 
-Trois acteurs se partagent l'API : le visiteur anonyme (référentiels, simulation rapide, création de compte), le membre qui hérite des droits du visiteur et gère ses propres simulations, et la gérante qui hérite des droits du membre et traite toutes les demandes. Toutes les actions du membre et de la gérante passent par la connexion avec jeton JWT.
+Trois acteurs : le visiteur (sans compte), le membre et la gérante.
 
-## 4. Diagramme de classes
+## 5. Architecture
 
-![Diagramme de classes](04-classes.png)
+![Architecture](04-architecture.png)
 
-Les classes correspondent aux entités Doctrine de l'API, reliées aux tables existantes. Les règles métier sont portées par les entités elles-mêmes : `Simulation::estModifiable()` et `changerStatut()` (transitions autorisées + historique), `Utilisateur::estBloque()` (compte désactivé ou trop d'échecs), `SimulationRapide::verifierCode()` (code de reprise).
-
-## 5. Séquence — connexion JWT
-
-![Séquence connexion JWT](05-sequence-connexion-jwt.png)
-
-La connexion est freinée après 5 échecs (429) et renvoie toujours le même message d'erreur, pour ne pas révéler si le login existe. Le mot de passe est vérifié avec le même hachage que le site (bcrypt `$2y$`), puis l'API renvoie un jeton signé valable 30 minutes, vérifié à chaque appel d'une route protégée (401 s'il est absent, modifié ou expiré).
-
-## 6. Séquence — simulation rapide et rattachement
-
-![Séquence rattachement](06-sequence-rattachement.png)
-
-Un visiteur envoie une simulation rapide sans compte (envois limités par adresse IP) ; l'API lui renvoie une seule fois un code de reprise secret, dont seule l'empreinte est stockée. Une fois connecté, il rattache la simulation à son compte avec ce code : connaître le numéro de la simulation ne suffit pas, et le code ne peut servir qu'une fois.
-
-## 7. Architecture
-
-![Architecture](07-architecture.png)
-
-Le site et l'API sont deux applications Symfony distinctes qui partagent la même base MariaDB, chacune avec son propre compte MySQL (droits minimaux pour l'API). L'API, servie sur `api.domaine.fr` en HTTPS avec une liste blanche CORS, prépare l'arrivée de l'application mobile et, à terme, d'une agence partenaire.
-
-## 8. Déploiement
-
-![Déploiement](08-deploiement.png)
-
-L'API s'installe sur le serveur existant sans nouveau logiciel : le serveur web sert son dossier `public/` sur un sous-domaine, avec le même PHP que le site. Les secrets (accès base, clés JWT de production) et les journaux sont rangés hors du dossier web, la base reste fermée à Internet, et une sauvegarde est faite avant chaque migration.
-
----
-
-## Choix de conception à retenir
-
-| Sujet | Choix | Pourquoi |
-|---|---|---|
-| Simulation rapide | Nouvelle table `simulation_rapide` | La table `simulation` impose destination, thème, logement et transport : une simulation anonyme n'y entre pas sans modifier des colonnes existantes |
-| Code de reprise | Aléatoire (`random_bytes`), stocké haché | Comme un mot de passe : une fuite de la base ne permet pas de rattacher la simulation d'un autre |
-| Statuts | `Statut` en VARCHAR(20) (MPD du site V2) : `brouillon` → `en_attente` (= envoyée) → `en_discussion` → `devis_envoye` → `cloturee` ; `validé` / `refusé` conservés pour le site (RG-10) | Le site continue d'afficher et de modifier ses statuts ; l'API ajoute les siens sans rien renommer |
-| Rôle gérante | Réutilise `utilisateur.Role = 'admin'` | Le rôle existe déjà en base (contrairement à ce que dit le cahier des charges) |
-| Destinations multiples | Table `inclu_destination` (priorité) ; `simulation.IdDestination` = destination n°1 | Le site continue de lire sa destination principale |
-| Besoins spécifiques | Texte, visible seulement par le membre propriétaire et la gérante | Peut contenir des données de santé (RGPD) |
+Trois machines virtuelles : un poste **Windows client** (navigateur), un serveur web **Ubuntu** (Apache + PHP, avec le site vitrine et l'API) et un **Windows Server** qui héberge la base **MySQL**. Aujourd'hui, la cliente utilise un navigateur (application web) ; une application mobile est prévue plus tard et utilisera la même API.
